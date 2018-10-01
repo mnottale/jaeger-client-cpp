@@ -34,6 +34,7 @@ static constexpr auto kTracerStateHeaderName = kTraceContextHeaderName;
 static constexpr auto kTraceBaggageHeaderPrefix = "uberctx-";
 static constexpr auto kSamplerTypeConst = "const";
 static constexpr auto kSamplerTypeRemote = "remote";
+static constexpr auto kSamplerTypeCategorizerProbabilistic = "categorizer";
 static constexpr auto kSamplerTypeProbabilistic = "probabilistic";
 static constexpr auto kSamplerTypeRateLimiting = "ratelimiting";
 static constexpr auto kSamplerTypeLowerBound = "lowerbound";

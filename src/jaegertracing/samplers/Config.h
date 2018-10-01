@@ -27,6 +27,7 @@
 #include "jaegertracing/Logging.h"
 #include "jaegertracing/metrics/Metrics.h"
 #include "jaegertracing/samplers/ConstSampler.h"
+#include "jaegertracing/samplers/ProbabilisticCategorizerSampler.h"
 #include "jaegertracing/samplers/ProbabilisticSampler.h"
 #include "jaegertracing/samplers/RateLimitingSampler.h"
 #include "jaegertracing/samplers/RemotelyControlledSampler.h"
@@ -44,7 +45,7 @@ class Config {
         static_cast<double>(0.001);
     static constexpr auto kDefaultSamplingServerURL = "http://127.0.0.1:5778";
     static constexpr auto kDefaultMaxOperations = 2000;
-
+    typedef std::vector<std::pair<std::string, double>> Categories;
     static Clock::duration defaultSamplingRefreshInterval()
     {
         return std::chrono::minutes(1);
@@ -69,11 +70,22 @@ class Config {
         const auto samplingRefreshInterval =
             std::chrono::seconds(utils::yaml::findOrDefault<int>(
                 configYAML, "samplingRefreshInterval", 0));
+        const auto categoriesNode = configYAML["categories"];
+        Categories categories;
+        if (categoriesNode.IsDefined() && categoriesNode.IsMap())
+        {
+          for (auto const& n: categoriesNode)
+          {
+            categories.push_back(
+              std::make_pair(n.first.as<std::string>(), n.second.as<double>()));
+          }
+        }
         return Config(type,
                       param,
                       samplingServerURL,
                       maxOperations,
-                      samplingRefreshInterval);
+                      samplingRefreshInterval,
+                      categories);
     }
 
 #endif  // JAEGERTRACING_WITH_YAML_CPP
@@ -84,7 +96,8 @@ class Config {
         const std::string& samplingServerURL = kDefaultSamplingServerURL,
         int maxOperations = kDefaultMaxOperations,
         const Clock::duration& samplingRefreshInterval =
-            defaultSamplingRefreshInterval())
+            defaultSamplingRefreshInterval(),
+        Categories categories = Categories())
         : _type(type.empty() ? kSamplerTypeRemote : type)
         , _param(param == 0 ? kDefaultSamplingProbability : param)
         , _samplingServerURL(samplingServerURL.empty()
@@ -95,6 +108,7 @@ class Config {
         , _samplingRefreshInterval(samplingRefreshInterval.count() > 0
                                        ? samplingRefreshInterval
                                        : defaultSamplingRefreshInterval())
+        , _categories(categories)
     {
     }
 
@@ -125,7 +139,10 @@ class Config {
                 return std::unique_ptr<Sampler>();
             }
         }
-
+        if (samplerType == kSamplerTypeCategorizerProbabilistic) {
+          return std::unique_ptr<ProbabilisticCategorizerSampler>(
+            new ProbabilisticCategorizerSampler(_categories));
+        }
         if (samplerType == kSamplerTypeRateLimiting) {
             return std::unique_ptr<RateLimitingSampler>(
                 new RateLimitingSampler(_param));
@@ -175,6 +192,7 @@ class Config {
     std::string _samplingServerURL;
     int _maxOperations;
     Clock::duration _samplingRefreshInterval;
+    Categories _categories;
 };
 
 }  // namespace samplers
