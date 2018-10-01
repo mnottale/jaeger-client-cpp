@@ -31,6 +31,7 @@ class Sampler {
         kAdaptiveSampler,
         kConstSampler,
         kGuaranteedThroughputProbabilisticSampler,
+        kProbabilisticCategorizerSampler,
         kProbabilisticSampler,
         kRateLimitingSampler,
         kRemotelyControlledSampler
