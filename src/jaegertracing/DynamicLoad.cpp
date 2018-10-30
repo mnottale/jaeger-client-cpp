@@ -35,11 +35,11 @@ static int makeTracerFactory(const char* opentracingVersion,
         static_cast<const void*>(&opentracing::dynamic_load_error_category());
     return opentracing::dynamic_load_not_supported_error.value();
 #endif
-    if (std::strcmp(opentracingABIVersion, OPENTRACING_ABI_VERSION) != 0) {
+    /*if (std::strcmp(opentracingABIVersion, OPENTRACING_ABI_VERSION) != 0) {
         *errorCategory = static_cast<const void*>(
             &opentracing::dynamic_load_error_category());
         return opentracing::incompatible_library_versions_error.value();
-    }
+    }*/
 
     *tracerFactory = new (std::nothrow) jaegertracing::TracerFactory{};
     if (*tracerFactory == nullptr) {
@@ -50,4 +50,4 @@ static int makeTracerFactory(const char* opentracingVersion,
     return 0;
 }
 
-OPENTRACING_DECLARE_IMPL_FACTORY(makeTracerFactory)
+//OPENTRACING_DECLARE_IMPL_FACTORY(makeTracerFactory)
