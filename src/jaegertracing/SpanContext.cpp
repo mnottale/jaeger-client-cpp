@@ -20,6 +20,80 @@
 
 namespace jaegertracing {
 
+static const char hexValues[] = "0123456789abcdef";
+
+void writeHexByte(std::string& str, uint8_t v, bool& skip)
+{
+    uint8_t hi = (v>>4)&0x0F;
+    if (!skip || hi != 0)
+    {
+        str += hexValues[hi];
+        skip = false;
+    }
+    uint8_t lo = v&0x0F;
+    if (!skip || lo != 0)
+    {
+        str += hexValues[lo];
+        skip = false;
+    }
+}
+void writeHex(std::string& str, uint64_t v, bool skip=true, bool notEmpty = true)
+{
+    for (int b=7; b>= 0; --b)
+        writeHexByte(str, (v >> (b*8)) & 0xFF, skip);
+    if (skip && notEmpty)
+        str += '0';
+}
+
+std::string SpanContext::inject() const
+{
+    std::string res;
+    res.reserve(32 + 1 + 16 + 1 + 16 + 1 + 1);
+    if (_traceID.high() != 0)
+    {
+        writeHex(res, _traceID.high(), true, false);
+        writeHex(res, _traceID.low(), false);
+    }
+    else
+        writeHex(res, _traceID.low());
+    res += ':';
+    writeHex(res, _spanID);
+    res += ':';
+    writeHex(res, _parentID);
+    res += ':';
+    bool skip = true;
+    writeHexByte(res, static_cast<size_t>(_flags), skip);
+    return res;
+}
+
+bool SpanContext::extract(const std::string& trace)
+{
+    auto p = trace.find_first_of(':');
+    if (p == trace.npos)
+        return false;
+    if (p > 16)
+    {
+        uint64_t hi = utils::HexParsing::decodeHex<uint64_t>(&trace[0], &trace[p-16]);
+        uint64_t lo = utils::HexParsing::decodeHex<uint64_t>(&trace[p-16], &trace[p]);
+        _traceID = TraceID(hi, lo);
+    }
+    else
+    {
+        uint64_t lo = utils::HexParsing::decodeHex<uint64_t>(&trace[0], &trace[p]);
+        _traceID = TraceID(0, lo);
+    }
+    auto p2 = trace.find_first_of(':', p+1);
+    if (p2 == trace.npos)
+        return false;
+    _spanID = utils::HexParsing::decodeHex<uint64_t>(&trace[p+1], &trace[p2]);
+    auto p3 = trace.find_first_of(':', p2+1);
+    if (p3 == trace.npos)
+        return false;
+    _parentID = utils::HexParsing::decodeHex<uint64_t>(&trace[p2+1], &trace[p3]);
+    _flags = utils::HexParsing::decodeHex<uint64_t>(&trace[p3+1], &trace[trace.length()]);
+    return true;
+}
+
 SpanContext SpanContext::fromStream(std::istream& in)
 {
     SpanContext spanContext;

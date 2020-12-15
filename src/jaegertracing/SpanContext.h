@@ -194,6 +194,9 @@ class SpanContext : public opentracing::SpanContext {
         return !operator==(lhs, rhs);
     }
 
+    std::string inject() const;
+    bool extract(const std::string& trace);
+
   private:
     TraceID _traceID;
     uint64_t _spanID;

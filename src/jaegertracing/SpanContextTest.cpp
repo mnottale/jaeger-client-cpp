@@ -70,6 +70,14 @@ TEST(SpanContext, testFromStream)
         }
 
         ASSERT_EQ(spanContext, spanContextFromStreamOp);
+
+        if (testCase._success)
+        {
+            SpanContext sc;
+            bool result = sc.extract(testCase._input);
+            ASSERT_EQ(true, result);
+            ASSERT_EQ(testCase._input, sc.inject());
+        }
     }
 }
 
@@ -79,6 +87,10 @@ TEST(SpanContext, testFormatting)
     std::ostringstream oss;
     oss << spanContext;
     ASSERT_EQ("ff00000000000000ff:0:0:0", oss.str());
+    ASSERT_EQ("ff00000000000000ff:0:0:0", spanContext.inject());
+    SpanContext spanContext2;
+    ASSERT_EQ(true, spanContext2.extract("ff00000000000000ff:0:0:0"));
+    ASSERT_EQ(spanContext, spanContext2);
 }
 
 TEST(SpanContext, testBaggage)

@@ -52,11 +52,9 @@ inline std::string readSegment(std::istream& in, size_t maxChars, char delim)
     return buffer;
 }
 
-template <typename ResultType>
-ResultType decodeHex(const std::string& str)
+template<typename ResultType, typename Iter>
+ResultType decodeHex(Iter first, Iter last)
 {
-    auto first = std::begin(str);
-    auto last = std::end(str);
     ResultType result = 0;
     for (; first != last; ++first) {
         const auto ch = *first;
@@ -79,6 +77,14 @@ ResultType decodeHex(const std::string& str)
     }
 
     return result;
+}
+
+template <typename ResultType>
+ResultType decodeHex(const std::string& str)
+{
+    auto first = std::begin(str);
+    auto last = std::end(str);
+    return decodeHex<ResultType>(first, last);
 }
 
 }  // namespace HexParsing
